@@ -8,21 +8,19 @@
     <!-- Adicionando as bibliotecas para exportação de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- Adicionando Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-	@import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lilita+One&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-
-	.lilita-one-regular {
-  	font-family: "Lilita One", sans-serif;
-  	font-weight: 200;
-  	font-style: normal;
-	}
-
-
+        .lilita-one-regular {
+            font-family: "Lilita One", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+        }
         /* Estilos para impressão */
         @media print {
             body {
@@ -31,14 +29,14 @@
             .print-hide {
                 display: none !important;
             }
-
-	}
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
 
-    <div class="w-full max-w-5xl bg-white shadow-xl rounded-2xl p-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center lilita-one-regular">CONTROLE DE PAGAMENTOS DE NOTAS FISCAIS - DEPARTAMENTO DE TI</h1>
+    <div class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center lilita-one-regular">
+            Controle de Pagamentos Mensais - Departamento de TI </h1>
 
         <!-- Filtros e botões -->
         <div class="mb-6 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
@@ -53,7 +51,7 @@
                 <button onclick="filterPayments('all')" id="filterAllBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200">
                     Todos
                 </button>
-                <button onclick="filterPayments('pending')" id="filterPendingBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-white-700 bg-gray-200 hover:bg-gray-300 transition-colors duration-200">
+                <button onclick="filterPayments('pending')" id="filterPendingBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors duration-200">
                     Pendentes
                 </button>
                 <button onclick="filterPayments('paid')" id="filterPaidBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors duration-200">
@@ -92,24 +90,24 @@
 
         <!-- Formulário para adicionar novo pagamento -->
         <div class="mt-8">
-            <h2 class="text-sx font-bold text-gray-800 mb-4">Novo Pagamento</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Adicionar Novo Pagamento</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input type="text" id="newCompanyName" placeholder="Nome da empresa"
                        class="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                <input type="date" id="newDueDate" placeholder="Data de vencimento"
+                <input type="date" id="newDueDate"
                        class="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             </div>
-            <button onclick="addPayment()" class="mt-4 w-full p-3 rounded-xl font-semibold text-white bg-indigo-800 hover:bg-indigo-900 transition-colors duration-200">
+            <button onclick="addPayment()" class="mt-4 w-full p-3 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200">
                 Adicionar Pagamento
             </button>
         </div>
 
         <!-- Botões de impressão e exportação -->
         <div class="mt-6 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 justify-end w-full">
-            <button onclick="printTable()" class="w-full sm:w-auto px-4 py-2 rounded-xl font-medium text-white bg-gray-500 hover:bg-gray-700 transition-colors duration-200">
+            <button onclick="printTable()" class="w-full sm:w-auto px-4 py-2 rounded-full font-medium text-white bg-indigo-500 hover:bg-indigo-600 transition-colors duration-200">
                 Imprimir
             </button>
-            <button onclick="exportToPdf()" class="w-full sm:w-auto px-4 py-2 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200">
+            <button onclick="exportToPdf()" class="w-full sm:w-auto px-4 py-2 rounded-full font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200">
                 Exportar PDF
             </button>
         </div>
@@ -237,17 +235,23 @@
                     `;
                 }
 
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 rounded-l-lg editable-company"
+                const companyCellHtml = `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 rounded-l-lg"
                         contenteditable="${editingId === p.id}"
                         data-original="${p.company}">
                         ${p.company}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 editable-date"
-                        contenteditable="${editingId === p.id}"
-                        data-original="${p.dueDate}">
+                    </td>`;
+                
+                const dueDateCellHtml = editingId === p.id ? 
+                    `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <input type="date" value="${p.dueDate}" class="w-full text-sm rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 p-1">
+                    </td>` :
+                    `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         ${formatDisplayDate(p.dueDate)}
-                    </td>
+                    </td>`;
+
+                tr.innerHTML = `
+                    ${companyCellHtml}
+                    ${dueDateCellHtml}
                     <td class="px-6 py-4 whitespace-nowrap text-center">
                         <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
                             ${statusText}
@@ -267,7 +271,7 @@
         // Adiciona um novo pagamento
         function addPayment() {
             const company = newCompanyNameInput.value.trim();
-            const dueDate = newDueDateInput.value;
+            const dueDate = newDueDateInput.value.trim();
 
             if (company && dueDate) {
                 payments.push({ id: Date.now(), company, dueDate, isPaid: false });
@@ -339,22 +343,15 @@
         function saveItem(id) {
             const row = document.querySelector(`tr[data-id='${id}']`);
             if (row) {
-                const companyCell = row.querySelector('.editable-company');
-                const dateCell = row.querySelector('.editable-date');
+                const companyCell = row.querySelector('[contenteditable]');
+                const dateInput = row.querySelector('input[type="date"]');
                 const newCompany = companyCell.textContent.trim();
-                const newDate = dateCell.textContent.trim();
+                const newDueDate = dateInput.value;
 
                 const payment = payments.find(p => p.id === id);
                 if (payment) {
                     payment.company = newCompany;
-                    // Salva a data no formato yyyy-mm-dd para consistência
-                    const dateParts = newDate.split('/');
-                    if (dateParts.length === 3) {
-                        payment.dueDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-                    } else {
-                        // Se o formato não for dd/mm/aaaa, salva como está (pode ser yyyy-mm-dd)
-                        payment.dueDate = newDate;
-                    }
+                    payment.dueDate = newDueDate;
                 }
             }
 
