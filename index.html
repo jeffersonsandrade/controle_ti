@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Pagamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Adicionando as bibliotecas para exportação de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+	@import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+	.lilita-one-regular {
+  	font-family: "Lilita One", sans-serif;
+  	font-weight: 200;
+  	font-style: normal;
+	}
+
+
+        /* Estilos para impressão */
+        @media print {
+            body {
+                background-color: white;
+            }
+            .print-hide {
+                display: none !important;
+            }
+
+	}
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
+
+    <div class="w-full max-w-5xl bg-white shadow-xl rounded-2xl p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center lilita-one-regular">CONTROLE DE PAGAMENTOS DE NOTAS FISCAIS - DEPARTAMENTO DE TI</h1>
+
+        <!-- Filtros e botões -->
+        <div class="mb-6 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+            <div class="relative w-full sm:w-auto">
+                <input type="text" id="searchInput" placeholder="Pesquisar empresa..."
+                       class="w-full sm:w-64 p-3 pr-10 rounded-full border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <div class="flex space-x-2 w-full sm:w-auto">
+                <button onclick="filterPayments('all')" id="filterAllBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200">
+                    Todos
+                </button>
+                <button onclick="filterPayments('pending')" id="filterPendingBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-white-700 bg-gray-200 hover:bg-gray-300 transition-colors duration-200">
+                    Pendentes
+                </button>
+                <button onclick="filterPayments('paid')" id="filterPaidBtn" class="w-1/3 sm:w-auto px-4 py-2 rounded-full font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors duration-200">
+                    Pagos
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200 bg-white rounded-lg">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Empresa
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Vencimento
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Aviso
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider print-hide">
+                            Ações
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="paymentTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Conteúdo da tabela será gerado via JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Formulário para adicionar novo pagamento -->
+        <div class="mt-8">
+            <h2 class="text-sx font-bold text-gray-800 mb-4">Novo Pagamento</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input type="text" id="newCompanyName" placeholder="Nome da empresa"
+                       class="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="date" id="newDueDate" placeholder="Data de vencimento"
+                       class="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <button onclick="addPayment()" class="mt-4 w-full p-3 rounded-xl font-semibold text-white bg-indigo-800 hover:bg-indigo-900 transition-colors duration-200">
+                Adicionar Pagamento
+            </button>
+        </div>
+
+        <!-- Botões de impressão e exportação -->
+        <div class="mt-6 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 justify-end w-full">
+            <button onclick="printTable()" class="w-full sm:w-auto px-4 py-2 rounded-xl font-medium text-white bg-gray-500 hover:bg-gray-700 transition-colors duration-200">
+                Imprimir
+            </button>
+            <button onclick="exportToPdf()" class="w-full sm:w-auto px-4 py-2 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200">
+                Exportar PDF
+            </button>
+        </div>
+
+        <!-- Modal de Confirmação -->
+        <div id="confirmModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div class="relative p-6 w-96 max-w-full bg-white rounded-xl shadow-lg text-center">
+                <p class="text-lg font-semibold mb-4 text-gray-800" id="modalText"></p>
+                <div class="flex justify-center space-x-4">
+                    <button id="confirmYesBtn" class="px-6 py-2 rounded-full bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors">Sim</button>
+                    <button id="confirmNoBtn" class="px-6 py-2 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors">Não</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para salvar a lista de pagamentos no localStorage
+        function savePayments() {
+            localStorage.setItem('payments', JSON.stringify(payments));
+        }
+
+        // Carrega os pagamentos do localStorage
+        const storedPayments = localStorage.getItem('payments');
+        let payments = storedPayments ? JSON.parse(storedPayments) : [];
+
+        let currentFilter = 'all';
+        let editingId = null;
+
+        // Elementos do DOM
+        const paymentTableBody = document.getElementById('paymentTableBody');
+        const newCompanyNameInput = document.getElementById('newCompanyName');
+        const newDueDateInput = document.getElementById('newDueDate');
+        const searchInput = document.getElementById('searchInput');
+        const confirmModal = document.getElementById('confirmModal');
+        const modalText = document.getElementById('modalText');
+        const confirmYesBtn = document.getElementById('confirmYesBtn');
+        const confirmNoBtn = document.getElementById('confirmNoBtn');
+
+        // Função para formatar a data de 'yyyy-mm-dd' para 'dd/mm/aaaa'
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        // Renderiza a tabela de pagamentos
+        function renderTable(filter = 'all', searchTerm = '') {
+            paymentTableBody.innerHTML = '';
+
+            const filteredPayments = payments.filter(p => {
+                const matchesFilter = (filter === 'all') ||
+                                     (filter === 'paid' && p.isPaid) ||
+                                     (filter === 'pending' && !p.isPaid);
+                const matchesSearch = p.company.toLowerCase().includes(searchTerm.toLowerCase());
+                return matchesFilter && matchesSearch;
+            });
+
+            filteredPayments.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition-colors duration-150";
+                tr.setAttribute('data-id', p.id);
+
+                const statusClass = p.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                const statusText = p.isPaid ? 'Pago' : 'Pendente';
+                const actionBtnText = p.isPaid ? 'Desfazer' : 'Pagar';
+                const actionBtnColor = p.isPaid ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600';
+
+                // Lógica para aviso de vencimento
+                const today = new Date();
+                const dueDate = new Date(p.dueDate);
+                const diffTime = dueDate.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let alertHtml = '';
+                if (!p.isPaid) {
+                    if (diffDays < 0) {
+                        const overdueDays = Math.abs(diffDays);
+                        alertHtml = `
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-white">
+                                <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-white" fill="currentColor" viewBox="0 0 8 8">
+                                    <circle cx="4" cy="4" r="3" />
+                                </svg>
+                                Vencido há ${overdueDays} dias
+                            </span>`;
+                    } else if (diffDays <= 10) {
+                        alertHtml = `
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-red-400" fill="currentColor" viewBox="0 0 8 8">
+                                    <circle cx="4" cy="4" r="3" />
+                                </svg>
+                                Vence em ${diffDays} dias
+                            </span>`;
+                    }
+                }
+
+                let actionsHtml;
+                if (editingId === p.id) {
+                    // Botões de edição
+                    actionsHtml = `
+                        <button onclick="saveItem(${p.id})"
+                                class="px-3 py-1 text-white font-medium rounded-full transition-colors duration-200 bg-indigo-600 hover:bg-indigo-700">
+                            Salvar
+                        </button>
+                        <button onclick="cancelEdit()"
+                                class="px-3 py-1 text-gray-700 font-medium rounded-full transition-colors duration-200 bg-gray-200 hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                    `;
+                } else {
+                    // Botões de ação normais
+                    actionsHtml = `
+                        <button onclick="togglePaidStatus(${p.id})"
+                                class="px-3 py-1 text-white font-medium rounded-full transition-colors duration-200 ${actionBtnColor}">
+                            ${actionBtnText}
+                        </button>
+                        <button onclick="editItem(${p.id})"
+                                class="px-3 py-1 text-blue-500 hover:text-blue-700 transition-colors duration-200">
+                            Editar
+                        </button>
+                        <button onclick="showConfirmModal('Tem certeza que deseja remover este pagamento?', () => removeItem(${p.id}))"
+                                class="px-3 py-1 text-red-500 hover:text-red-700 transition-colors duration-200">
+                            Remover
+                        </button>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 rounded-l-lg editable-company"
+                        contenteditable="${editingId === p.id}"
+                        data-original="${p.company}">
+                        ${p.company}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 editable-date"
+                        contenteditable="${editingId === p.id}"
+                        data-original="${p.dueDate}">
+                        ${formatDisplayDate(p.dueDate)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                        ${alertHtml}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2 rounded-r-lg print-hide">
+                        ${actionsHtml}
+                    </td>
+                `;
+                paymentTableBody.appendChild(tr);
+            });
+        }
+
+        // Adiciona um novo pagamento
+        function addPayment() {
+            const company = newCompanyNameInput.value.trim();
+            const dueDate = newDueDateInput.value;
+
+            if (company && dueDate) {
+                payments.push({ id: Date.now(), company, dueDate, isPaid: false });
+                newCompanyNameInput.value = '';
+                newDueDateInput.value = '';
+                savePayments(); // Salva a lista atualizada
+                renderTable(currentFilter, searchInput.value);
+            }
+        }
+
+        // Alterna o status de pagamento
+        function togglePaidStatus(id) {
+            const payment = payments.find(p => p.id === id);
+            if (payment) {
+                payment.isPaid = !payment.isPaid;
+                savePayments(); // Salva a lista atualizada
+                renderTable(currentFilter, searchInput.value);
+            }
+        }
+
+        // Remove um pagamento
+        function removeItem(id) {
+            payments = payments.filter(p => p.id !== id);
+            savePayments(); // Salva a lista atualizada
+            renderTable(currentFilter, searchInput.value);
+        }
+
+        // Filtra a tabela
+        function filterPayments(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.flex > button').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'text-white');
+                btn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+            });
+            document.getElementById(`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}Btn`).classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+            document.getElementById(`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}Btn`).classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'text-white');
+            renderTable(currentFilter, searchInput.value);
+        }
+
+        // Exibe o modal de confirmação (substitui alert/confirm)
+        function showConfirmModal(message, onConfirm) {
+            modalText.textContent = message;
+            confirmModal.classList.remove('hidden');
+
+            const yesHandler = () => {
+                onConfirm();
+                confirmModal.classList.add('hidden');
+                confirmYesBtn.removeEventListener('click', yesHandler);
+                confirmNoBtn.removeEventListener('click', noHandler);
+            };
+
+            const noHandler = () => {
+                confirmModal.classList.add('hidden');
+                confirmYesBtn.removeEventListener('click', yesHandler);
+                confirmNoBtn.removeEventListener('click', noHandler);
+            };
+
+            confirmYesBtn.addEventListener('click', yesHandler);
+            confirmNoBtn.addEventListener('click', noHandler);
+        }
+
+        // Inicia a edição de um item
+        function editItem(id) {
+            editingId = id;
+            renderTable(currentFilter, searchInput.value);
+        }
+
+        // Salva as edições de um item
+        function saveItem(id) {
+            const row = document.querySelector(`tr[data-id='${id}']`);
+            if (row) {
+                const companyCell = row.querySelector('.editable-company');
+                const dateCell = row.querySelector('.editable-date');
+                const newCompany = companyCell.textContent.trim();
+                const newDate = dateCell.textContent.trim();
+
+                const payment = payments.find(p => p.id === id);
+                if (payment) {
+                    payment.company = newCompany;
+                    // Salva a data no formato yyyy-mm-dd para consistência
+                    const dateParts = newDate.split('/');
+                    if (dateParts.length === 3) {
+                        payment.dueDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+                    } else {
+                        // Se o formato não for dd/mm/aaaa, salva como está (pode ser yyyy-mm-dd)
+                        payment.dueDate = newDate;
+                    }
+                }
+            }
+
+            editingId = null;
+            savePayments(); // Salva a lista atualizada
+            renderTable(currentFilter, searchInput.value);
+        }
+
+        // Cancela a edição
+        function cancelEdit() {
+            editingId = null;
+            renderTable(currentFilter, searchInput.value);
+        }
+        
+        // Função para imprimir a tabela
+        function printTable() {
+            window.print();
+        }
+
+        // Função para exportar a tabela como PDF
+        function exportToPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const table = document.querySelector('table');
+            const headers = Array.from(table.querySelectorAll('thead th:not(.print-hide)')).map(th => th.textContent.trim());
+            const data = [];
+            const rows = table.querySelectorAll('tbody tr');
+
+            rows.forEach(row => {
+                const rowData = [];
+                // Pega as células visíveis na tabela
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    // Ignora a coluna de ações
+                    if (!cell.classList.contains('print-hide')) {
+                        let textContent = cell.textContent.trim();
+                        // Garante que o status e aviso sejam legíveis
+                        const statusSpan = cell.querySelector('span');
+                        if (statusSpan) {
+                            textContent = statusSpan.textContent.trim();
+                        }
+                        rowData.push(textContent);
+                    }
+                });
+                data.push(rowData);
+            });
+
+            doc.autoTable({
+                head: [headers],
+                body: data,
+                startY: 20,
+                styles: { fontSize: 10, cellPadding: 2, textColor: [31, 41, 55] },
+                headStyles: { fillColor: [243, 244, 246], textColor: [107, 114, 128] },
+                bodyStyles: { fillColor: [255, 255, 255] },
+                margin: { top: 15 }
+            });
+
+            doc.save('controle-pagamentos.pdf');
+        }
+
+        // Event listener para a busca
+        searchInput.addEventListener('input', (e) => {
+            renderTable(currentFilter, e.target.value);
+        });
+
+        // Renderiza a tabela inicial
+        renderTable();
+    </script>
+
+</body>
+</html>
